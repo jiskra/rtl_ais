@@ -1,5 +1,5 @@
 rtl-sdr
-turns your Realtek RTL2832 based DVB dongle into a SDR receiver
+turns your RTL-SDR  based DVB dongle into a AIS receiver
 ======================================================================
 
 For more information see:
