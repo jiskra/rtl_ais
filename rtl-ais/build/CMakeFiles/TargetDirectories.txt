@@ -1,0 +1,3 @@
+/home/dirk/Development/OpenCPN_master/rtl-ais-dirk/build/CMakeFiles/uninstall.dir
+/home/dirk/Development/OpenCPN_master/rtl-ais-dirk/build/src/CMakeFiles/rtl_ais.dir
+/home/dirk/Development/OpenCPN_master/rtl-ais-dirk/build/src/CMakeFiles/rtl_test.dir
