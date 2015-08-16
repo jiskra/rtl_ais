@@ -551,6 +551,7 @@ int main(int argc, char **argv)
 	int rtl_agc=0;
 	int custom_ppm = 0;
     int custom_bandwidth = 0;
+    int use_autotune = 0;
     int bandwidth = 0;
 	int left_freq = 161975000;
 	int right_freq = 162025000;
@@ -571,7 +572,7 @@ int main(int argc, char **argv)
 	pthread_cond_init(&ready, NULL);
 	pthread_mutex_init(&ready_m, NULL);
 
-	while ((opt = getopt(argc, argv, "l:r:s:o:EODd:g:p:RAP:w:h:nLS:?")) != -1)
+	while ((opt = getopt(argc, argv, "l:r:s:o:EODd:g:p:RAP:w:h:naLS:?")) != -1)
 	{
 		switch (opt) {
 		case 'l':
@@ -631,6 +632,8 @@ int main(int argc, char **argv)
 		case 'n':
 			debug_nmea = 1;
 			break;
+        case 'a':
+            use_autotune = 1;
 		case '?':
 		default:
 			usage();
@@ -713,6 +716,12 @@ int main(int argc, char **argv)
 	} else {
 		fprintf(stderr, "Internal AIS decoder disabled.\n");
 	}
+	if (use_autotune) 
+        if (use_internal_aisdecoder) 
+            fprintf(stderr, "Use auto tuning for rtl receiver.\n");
+        else 
+            fprintf(stderr, "Auto tuning can only be used with internal AIS. sorry disabled! \n");
+
 	fprintf(stderr, "Buffer size: %0.2f mS\n", 1000 * (double)DEFAULT_BUF_LENGTH / (double)dongle_rate);
 	fprintf(stderr, "Downsample factor: %i\n", both.downsample * left.downsample);
 	fprintf(stderr, "Low pass: %i Hz\n", left.rate_out);
