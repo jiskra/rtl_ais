@@ -47,6 +47,9 @@
 #include <rtl-sdr.h>
 #include "convenience.h"
 #include "aisdecoder/aisdecoder.h"
+#include "aisdecoder/sounddecoder.h"
+#include "shared_vars.h"
+//#include "test.h"
 
 #define DEFAULT_ASYNC_BUF_NUMBER	12
 #define DEFAULT_BUF_LENGTH		(16 * 16384)
@@ -60,11 +63,7 @@ static pthread_mutex_t ready_m;
 static pthread_t ais_decoder_thread;
 
 static volatile int do_exit = 0;
-static rtlsdr_dev_t *dev = NULL;
-static unsigned int ppm_duration = PPM_DURATION;
-static uint32_t samp_rate = DEFAULT_SAMPLE_RATE;
-static uint32_t total_samples = 0;
-static uint32_t dropped_samples = 0;
+
 
 /* todo, less globals */
 int16_t *merged;
@@ -74,6 +73,9 @@ int oversample = 0;
 int dc_filter = 1;
 int use_internal_aisdecoder=1;
 int seconds_for_decoder_stats=0;
+rtlsdr_dev_t *dev = NULL;
+int ppm_error = 0 ;
+
 /* signals are not threadsafe by default */
 #define safe_cond_signal(n, m) pthread_mutex_lock(m); pthread_cond_signal(n); pthread_mutex_unlock(m)
 #define safe_cond_wait(n, m) pthread_mutex_lock(m); pthread_cond_wait(n, m); pthread_mutex_unlock(m)
@@ -162,6 +164,7 @@ void usage(void)
 		"\t[-R enable RTL chip AGC (default: off)]\n"
 		"\t[-A turn off built-in AIS decoder (default: on)]\n"
 		"\t    use this option to output samples to file or stdout.\n"
+        "\t[-a use auto tuning and auto setting of ppm]\n"
         "\t[-w bandwith in Hz (default the min possible setting)]\n"
 
 		"\tBuilt-in AIS decoder options:\n"
@@ -547,7 +550,6 @@ int main(int argc, char **argv)
 	int i, gain = AUTO_GAIN; /* tenths of a dB */
 	int dev_index = 0;
 	int dev_given = 0;
-	int ppm_error = 0;
 	int rtl_agc=0;
 	int custom_ppm = 0;
     int custom_bandwidth = 0;
@@ -568,11 +570,11 @@ int main(int argc, char **argv)
     int gains[100];
     int bandwidths[100];
     int check_ppm = 0;
-
+    ppm_auto_time = 10;
 	pthread_cond_init(&ready, NULL);
 	pthread_mutex_init(&ready_m, NULL);
 
-	while ((opt = getopt(argc, argv, "l:r:s:o:EODd:g:p:RAP:w:h:naLS:?")) != -1)
+	while ((opt = getopt(argc, argv, "l:r:s:o:E:O:D:d:g:p:R:A:P:w:h:n:L:S:a:?")) != -1)
 	{
 		switch (opt) {
 		case 'l':
@@ -590,12 +592,12 @@ int main(int argc, char **argv)
 		case 'E':
 			edge = !edge;
 			break;
-		case 'D':
-			dc_filter = !dc_filter;
-			break;
 		case 'O':
 			oversample = !oversample;
 			break;
+        case 'D':
+            dc_filter = !dc_filter;
+            break;
 		case 'd':
 			dev_index = verbose_device_search(optarg);
 			dev_given = 1;
@@ -613,27 +615,29 @@ int main(int argc, char **argv)
 		case 'A':
 			use_internal_aisdecoder=0;
 			break;
+		case 'P':
+			port=strdup(optarg);
+			break;
         case 'w':
             bandwidth = atoi(optarg);
             custom_bandwidth = 1;
             break;
-		case 'P':
-			port=strdup(optarg);
-			break;
 		case 'h':
 			host=strdup(optarg);
 			break;
+        case 'n':
+            debug_nmea = 1;
+            break;
 		case 'L':
 			show_levels=1;
 			break;
 		case 'S':
 			seconds_for_decoder_stats=atoi(optarg);
 			break;
-		case 'n':
-			debug_nmea = 1;
-			break;
         case 'a':
             use_autotune = 1;
+            break;
+
 		case '?':
 		default:
 			usage();
@@ -792,17 +796,7 @@ int main(int argc, char **argv)
 			}
 		}
 	}
-	else{ // Internal AIS decoder
-/*        struct init_ais_decoder_data *data;
-            data->host = host;
-            data->port = port;
-            data->show_levels = show_levels;
-            data->debug_nmea = debug_nmea;
-            data->buf_len = stereo.bl_len;
-            data->time_print_stats = seconds_for_decoder_stats;
- */       
-//        pthread_create(&ais_decoder_thread, NULL, ais_decoder_thread_fn, (void *) &data);    
-            
+	else{             
 		int ret=init_ais_decoder(host,port,show_levels,debug_nmea,stereo.bl_len,seconds_for_decoder_stats);
 		if(ret != 0){
 			fprintf(stderr,"Error initializing built-in AIS decoder\n");
@@ -851,11 +845,10 @@ int main(int argc, char **argv)
     count = rtlsdr_get_tuner_bandwidths(dev, bandwidths);
     for (i = 0; i < count; i++)
         fprintf(stderr, "%d ", bandwidths[i]);
-    fprintf(stderr, "\n");
-	
-	
+    fprintf(stderr, "\n");	
 	
 	verbose_set_bandwidth(dev, 300000);
+    
 	
 	verbose_ppm_set(dev, ppm_error);
 	
@@ -872,7 +865,8 @@ int main(int argc, char **argv)
 	rtlsdr_read_async(dev, rtlsdr_callback, (void *)(NULL),
 			      DEFAULT_ASYNC_BUF_NUMBER,
 			      DEFAULT_BUF_LENGTH);
-
+    
+fprintf(stderr, "%d ", bandwidths[i]);
 	if (do_exit) {
 		fprintf(stderr, "\nUser cancel, exiting...\n");}
 	else {

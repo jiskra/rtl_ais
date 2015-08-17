@@ -31,6 +31,10 @@ void runSoundDecoder(int *stop);
 void freeSoundDecoder(void);
 void run_mem_decoder(short * buf, int len,int max_buf_len);
 
+static struct receiver *rx_a=NULL;
+static struct receiver *rx_b=NULL;
+
+static int ppm_auto_time;
 #ifdef __cplusplus
 }
 #endif

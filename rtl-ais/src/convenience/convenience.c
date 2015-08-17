@@ -36,6 +36,7 @@
 
 #include "rtl-sdr.h"
 
+
 double atofs(char *s)
 /* standard suffixes */
 {
@@ -260,7 +261,7 @@ int verbose_ppm_set(rtlsdr_dev_t *dev, int ppm_error)
 		return 0;}
 	r = rtlsdr_set_freq_correction(dev, ppm_error);
 	if (r < 0) {
-		fprintf(stderr, "WARNING: Failed to set ppm error.\n");
+		fprintf(stderr, "WARNING: Failed to set ppm error to %i\n", ppm_error);
 	} else {
 		fprintf(stderr, "Tuner error set to %i ppm.\n", ppm_error);
 	}

@@ -22,6 +22,18 @@
 # # Install built library files & utilities
 # ########################################################################
 # )
+
+IF(LIBUSB_FOUND)
+    IF(NOT LIBUSB_FIND_QUIETLY)
+        MESSAGE(STATUS "Found LIBUSB: ${LIBUSB_LIBRARIES} ${LIBUSB_INCLUDE_DIRS}")
+        ENDIF (NOT LIBUSB_FIND_QUIETLY)
+        ELSE(LIBUSB_FOUND)
+        IF(LIBUSB_FIND_REQUIRED)
+        MESSAGE(FATAL_ERROR "Could not find LIBUSB")
+    ENDIF(LIBUSB_FIND_REQUIRED)
+ENDIF(LIBUSB_FOUND)
+
+
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/src 
   ${CMAKE_SOURCE_DIR}/src/convenience ${CMAKE_SOURCE_DIR}/src/aisdecoder
   ${CMAKE_SOURCE_DIR}/src/aisdecoder/lib)
@@ -50,6 +62,7 @@ add_executable (rtl_ais
     aisdecoder/lib/protodec.c
     aisdecoder/lib/hmalloc.c
     aisdecoder/lib/filter.c
+ #   test.c
     rtl_ais.c
     )
 add_executable(rtl_test
